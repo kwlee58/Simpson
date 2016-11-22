@@ -1,0 +1,296 @@
+---
+title: "Simpson’s Paradox"
+author: "coop711"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+## UCB Admissions Case
+
+1973년 UC Berkeley 대학원은 자신이 여성이라는 이유로 입학허가에서 차별을 받았다는 여성의 소송에 휘말렸다. 
+
+```{r}
+str(UCBAdmissions)
+class(UCBAdmissions)
+attributes(UCBAdmissions)
+UCBAdmissions
+```
+
+Table and Data Frame에서 살펴본 바와 같이 3차원 array 구조를 가진 `UCBAdmissions`를 한 눈에 파악하기 위하여 `ftable()`을 이용하였다. 성별 입학허가를 비교하기 위하여 `Admit`과 `Gender`의 위치를 바꾸는 다양한 방법이 있음을 알 수 있다. 
+
+```{r}
+ftable(UCBAdmissions)
+ftable(UCBAdmissions, row.vars=2:1)
+ftable(UCBAdmissions, row.vars=c("Gender", "Admit"))
+```
+또한 `ftable()`로 만든 table이 $4\times6$ 매트릭스이고 `$dim`과 `$class` 외에도 `$row.vars`, `$col.vars` 요소를 포함하고 있다는 것을 알 수 있다.
+
+```{r}
+attributes(ftable(UCBAdmissions))
+```
+
+3차원 array에서 각 요소를 추출하는 방법은 다음과 같다. 우선 입학허가자 중 남자들만 뽑아보면,
+
+```{r}
+UCBAdmissions[1, 1, ]
+```
+
+와 같이 전공별로 주어짐을 알 수 있고, 입학허가자 전체를 살펴보면,  
+
+```{r}
+UCBAdmissions[1, , ]
+```
+
+와 같이 성별, 전공별로 나뉘어짐을 알 수 있다. 지원한 남자들을 입학허가 여부와 전공별로 나눠 보면,
+
+```{r}
+UCBAdmissions[, 1, ]
+```
+A전공과 B전공에 많은 인원이 지원하고 입학허가도 많이 나왔음을 알 수 있다.
+
+여자들을 입학허가 여부와 전공별로 나눠 보면,
+
+```{r}
+UCBAdmissions[, 2, ]
+```
+남학생들이 많이 지원한 A전공과 B전공에는 적은 수효가 지원하였음을 알 수 있다. `apply()`를 이용하여 집계를 내는 방법에 대하여 알아보자. 우선, 입학허가 여부에 대하여 집계를 내어보면,
+
+```{r}
+apply(UCBAdmissions, 1, sum)
+```
+
+입학이 허가된 인원보다 그렇지 않은 인원이 훨씬 많았고, 남녀 지원자수의 합계를 비교해 보면
+
+```{r}
+apply(UCBAdmissions, 2, sum)
+```
+
+남학생이 더 많이 지원했음을 알 수 있다. 전공별 지원자수를 살펴보면,
+
+```{r}
+apply(UCBAdmissions, 3, sum)
+```
+
+A전공과 B전공에 많은 지원이 있었음을 알 수 있다. 남녀별, 입학허가 여부별로 집계해 보면, 
+
+```{r}
+apply(UCBAdmissions, c(1, 2), sum)
+```
+
+얼핏 윤곽은 파악되나, 자세한 내역은 백분률을 내어 봐야 함을 알 수 있다. 성별, 전공별 집계를 내어보면, 
+
+```{r}
+apply(UCBAdmissions, c(2, 3), sum)
+```
+
+A전공, B전공은 남학생이 윌등히 많이 지원하였고, C전공, E전공에는 여학생이 많이 지원했음을 알 수 있다.  입학허가 여부별, 전공별 집계를 내보면,
+
+```{r}
+apply(UCBAdmissions, c(1, 3), sum)
+```
+
+A전공, B전공은 쉽게 허가가 나오는 반면에 F전공은 매우 입학허가 나오기 어려운 전공임을 알 수 있다. 각 전공별로 남녀의 입학허가 및 탈락 비율을 비교하려면,
+
+```{r}
+options(digits=2)
+prop.table(UCBAdmissions, margin=2:3)
+```
+
+와 같은 방법을 쓸 수 있다. `margin=2:3`이 전공별, 성별을 의미한다는 것을 알 수 있다. 한 눈에 파악할 수 있도록 `ftable()`을 사용하되 `margin=2:3`으로 하여 성별, 전공별로 입학허가여부의 비율을 합하면 1이 되도록 하였다.
+
+```{r}
+ftable(prop.table(UCBAdmissions, margin=2:3))
+```
+
+성별, 입학허가율을 비교하기 위하여 `row.vars=2:1`로 하여 순서를 바꾼다.
+
+```{r}
+ftable(prop.table(UCBAdmissions, margin=2:3), row.vars=2:1)
+```
+
+이 중 입학허가율만 비교한다면,
+
+```{r}
+prop.table(UCBAdmissions, margin=2:3)[1, , ]
+```
+
+임을 알 수 있어서 오히려 여자들의 입학허가율이 전공별로는 더 높거나 거의 같은 수준임을 알 수 있다. 이는 그 위의 결과를 이용하여
+
+```{r}
+ftable(prop.table(UCBAdmissions, margin=2:3))[1:2,]
+```
+
+라고 하여도 되지만 이름을 잃어버린다. 한편 전체적으로는 
+
+```{r}
+options(digits=3)
+prop.table(apply(UCBAdmissions, c(1, 2), sum), margin=2)
+```
+
+남자들의 입학허가율이 여자들의 입학허가율보다 높다. 이는 다음 식으로부터 보다 확실히 알 수 있다. 
+
+```{r}
+prop.table(apply(UCBAdmissions, c(1,2), sum), margin=2)[1, ]
+```
+
+전공별 지원자를 집계해 보면,
+
+```{r}
+apply(UCBAdmissions, 3, sum)
+```
+
+성별, 전공별 입학허가율만 따로 떼어 내면,
+
+```{r}
+prop.table(UCBAdmissions, margin=2:3)[1, , ]
+```
+
+전공별 지원자수를 새로운 R object로 저장하고,
+
+```{r}
+total.applicants.major<-apply(UCBAdmissions, 3, sum)
+```
+
+총 지원자수를 또 다른 R object로 저장한다.
+
+```{r}
+total.applicants<-sum(total.applicants.major)
+total.applicants
+```
+
+남녀별 입학허가율을 새로운 R 객체로 저장하면, 
+
+```{r}
+admitted.rates.m.major<-prop.table(UCBAdmissions,margin=2:3)[1, 1, ]
+admitted.rates.f.major<-prop.table(UCBAdmissions,margin=2:3)[1, 2, ]
+```
+
+남자의 전공별 입학허가율은,
+
+```{r}
+admitted.rates.m.major
+```
+
+이고, 여자의 전공별 입학허가율은,
+
+```{r}
+admitted.rates.f.major
+```
+
+으로 계산되어 여자들의 입학허가율이 높거나 대체로 비슷함을 알 수 있다. 이 여섯 개의 입학허가율을 전공별 지원자수를 가중치로 고려한 하나의 입학허가율로 계산하면,
+
+```{r}
+admitted.rates.m<-sum(admitted.rates.m.major*total.applicants.major)/total.applicants
+admitted.rates.f<-sum(admitted.rates.f.major*total.applicants.major)/total.applicants
+c(male=admitted.rates.m, female=admitted.rates.f)
+```
+
+와 같이 계산되어 전공을 고려하지 않고 계산한 남녀별 입학허가율과는 반대의 결과가 나온다.
+
+
+## Smoking and Survival
+
+
+1972년부터 1974년 사이에 영국의 위컴(Whickham)에서 선거등록부에 올라와 있는 주민 여섯 명 1명 꼴로 실시한 조사결과와 그로부터 20년 후에 실시한 추수조사(follow-up study)결과를 비교한다. 자료를 읽어들여서 data frame으로 저장한다. 
+
+```{r}
+s<-read.table("../data/Smoking_simpson.txt", stringsAsFactors=TRUE)
+str(s)
+s
+```
+
+변수들에 이름을 주고,
+
+```{r}
+names(s)<-c("Age", "Smoking", "Survived", "Counts")
+s
+```
+
+사실상 ordered factor인 `"Age"`를 제대로 규정해 주고,
+
+```{r}
+s$Age<-factor(s$Age, ordered=TRUE)
+str(s)
+```
+
+연령대별로 흡연여부와 생존여부를 살펴본다.
+
+```{r}
+xtabs(Counts~Survived+Smoking+Age,data=s)
+```
+
+연령대를 고려하지 않고 집계하면,
+
+```{r}
+xtabs(Counts~Survived+Smoking,data=s)
+```
+
+흡연여부와 생존률의 관계를 살피기 어려우므로,
+
+```{r}
+options("digits"=2)
+prop.table(xtabs(Counts~Survived+Smoking, data=s), margin=2)
+```
+
+놀랍게도 흡연자들의 생존률이 비흡연자들의 생존률보다 높게 나타나고 있다. 그러나 연령대별로 나눠보면,
+
+```{r}
+prop.table(xtabs(Counts~Survived+Smoking+Age, data=s), margin=c(2, 3))
+```
+
+어느 연령대에서나 비흡연자의 생존률이 높게 나와서 이 또한 전형적인 Simpson's Paradox에 해당함을 알 수 있다. 생존률만 일목요연하게 비교할 수 있으려면, `prop.table`을 이용할 수 있는데,
+
+```{r}
+prop.table(xtabs(Counts~Survived+Smoking+Age, data=s), margin=c(2, 3))[2, , ]
+```
+
+`ftable`을 사용할 경우
+
+```{r}
+ftable(prop.table(xtabs(Counts~Survived+Smoking+Age, data=s), margin=c(2, 3)))
+```
+
+전체를 살펴보는 데는 문제가 없지만, 일부분을 추출하면
+
+```{r}
+ftable(prop.table(xtabs(Counts~Survived+Smoking+Age, data=s), margin=c(2, 3)))[1:2, ]
+```
+
+이름을 잃어버린다. 
+
+연령대가 유의한 요인임을 확인한다.
+
+## Titanic Survival Rates in 3rd Class and Crew
+
+3등실과 선원들에 한해서 여성들의 생존률을 분석하시오. 
+
+```{r}
+str(Titanic)
+apply(Titanic, c(1,2), sum)
+apply(Titanic, c(1,2), sum)[3:4,]
+apply(Titanic, c(1,4), sum)[3:4,]
+options(digits=2)
+apply(Titanic, c(1,2,4), sum)
+apply(Titanic, c(1,2,4), sum)[3:4,,]
+ftable(apply(Titanic, c(1,2,4), sum)[3:4,,])
+ftable(apply(Titanic, c(1,4,2), sum)[3:4,,])
+ftable(apply(Titanic, c(1,4,2), sum)[3:4,,])[1:2,]
+ftable(apply(Titanic, c(1,4,2), sum)[3:4,,])[3:4,]
+prop.table(ftable(apply(Titanic, c(1,4,2), sum)[3:4,,])[1:2,], margin=2)
+prop.table(ftable(apply(Titanic, c(1,4,2), sum)[3:4,,])[3:4,], margin=2)
+matrix(prop.table(ftable(apply(Titanic, c(1,4,2), sum)[3:4,,])[1:2,], margin=2), nrow=2,  dimnames=list(dimnames(Titanic)$Survived, dimnames(Titanic)$Sex))
+matrix(prop.table(ftable(apply(Titanic, c(1,4,2), sum)[3:4,,])[3:4,], margin=2), nrow=2,  dimnames=list(dimnames(Titanic)$Survived, dimnames(Titanic)$Sex))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
