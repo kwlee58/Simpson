@@ -331,6 +331,8 @@ anova(UCB.glm.1, UCB.glm.2, test="Chisq")
 
 물론 counts로 구성한 data frame 으로도 `glm` 분석이 가능하다.
 
+<P style = "page-break-before:always">
+
 GLM (data frame with Counts)
 --------------------------
 
@@ -383,6 +385,8 @@ anova(UCB.glm.3, UCB.glm.4, test="Chisq")
 ```
 
 이 역시 같은 분석 결과를 얻는다.
+
+<P style = "page-break-before:always">
 
 GLM (data frame with Proportion)
 --------------------------------
